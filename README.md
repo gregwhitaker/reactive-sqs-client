@@ -1,6 +1,8 @@
 reactive-sqs-client
 ===
 
+[![Build Status](https://travis-ci.org/gregwhitaker/reactive-sqs-client.svg?branch=master)](https://travis-ci.org/gregwhitaker/reactive-sqs-client)
+
 An observable client for AWS [Simple Queue Service](https://aws.amazon.com/sqs/).
 
 ##License
