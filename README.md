@@ -5,6 +5,15 @@ reactive-sqs-client
 
 An observable client for AWS [Simple Queue Service](https://aws.amazon.com/sqs/).
 
+##Running the Example
+The example can be run using the following gradle command:
+
+```
+$ ./gradlew run -DqueueName={name of sqs queue} -Dregion={aws region}
+```
+
+**NOTE:** The example is using the `DefaultAWSCredentialsProvider` so you can supply your AWS credentials using the `.aws/credentials` file, as system properties, or as environment variables.
+
 ##License
 Copyright 2016 Greg Whitaker
 
