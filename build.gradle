@@ -8,6 +8,20 @@ apply from: file('gradle/codequality.gradle')
 apply from: file('gradle/release.gradle')
 apply from: file('gradle/convention.gradle')
 
+sourceSets {
+    examples {
+        java {
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+        }
+    }
+}
+
+configurations {
+    examplesCompile.extendsFrom testCompile
+    examplesRuntime.extendsFrom testRuntime
+}
+
 repositories {
     mavenCentral()
 }
