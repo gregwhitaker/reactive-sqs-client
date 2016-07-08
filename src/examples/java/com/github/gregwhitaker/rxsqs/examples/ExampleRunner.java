@@ -19,11 +19,11 @@ public class ExampleRunner {
         final String queueName = System.getProperty("queueName");
         final String region = System.getProperty("region");
 
-        if (queueName.isEmpty()) {
+        if (queueName == null || queueName.isEmpty()) {
             throw new RuntimeException("The name of the queue is required to run this demo!");
         }
         
-        if (region.isEmpty()) {
+        if (region == null || region.isEmpty()) {
             throw new RuntimeException("The AWS region where the queue is located is required to run this demo!");
         } else {
             try {
