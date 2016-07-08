@@ -36,4 +36,5 @@ dependencies {
 run {
     mainClassName = 'com.github.gregwhitaker.rxsqs.examples.ExampleRunner'
     classpath = sourceSets.examples.runtimeClasspath
+    systemProperties = System.getProperties();
 }
