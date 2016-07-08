@@ -20,6 +20,7 @@ public class ExampleRunner {
         final String region = System.getProperty("region");
 
         if (queueName == null || queueName.isEmpty()) {
+            System.out.println("Test");
             throw new RuntimeException("The name of the queue is required to run this demo!");
         }
         
