@@ -53,7 +53,7 @@ bintray {
         issueTrackerUrl = 'https://github.com/gregwhitaker/reactive-sqs-client/issues'
         vcsUrl = 'https://github.com/gregwhitaker/reactive-sqs-client.git'
         licenses = ['Apache-2.0']
-        githubRepo = 'gregwhitaker/ignition-springboot-common'
+        githubRepo = 'gregwhitaker/reactive-sqs-client'
         githubReleaseNotesFile = 'CHANGELOG.md'
 
         version {
