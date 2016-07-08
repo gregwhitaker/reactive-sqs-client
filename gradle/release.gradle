@@ -1,4 +1,6 @@
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
 
 task versionArchives {
     description = "Creates a continuous-delivery friendly version number for the service"
@@ -47,8 +49,8 @@ bintray {
     pkg {
         repo = 'gregwhitaker'
         name = "${artifact}"
-        userOrg = 'ignitr'
-        desc = 'Library of common components used by Ignition SpringBoot projects'
+        userOrg = 'gregwhitaker'
+        desc = 'An observable Amazon Web Services Simple Queue Service client'
         websiteUrl = 'https://github.com/gregwhitaker/reactive-sqs-client'
         issueTrackerUrl = 'https://github.com/gregwhitaker/reactive-sqs-client/issues'
         vcsUrl = 'https://github.com/gregwhitaker/reactive-sqs-client.git'
