@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 Greg Whitaker
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.github.gregwhitaker.rxsqs;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -54,7 +70,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
- *
+ * An {@link Observable} wrapper around the Amazon Web Services Simple Queue Service (SQS) client.
  */
 public class ReactiveSqsClient {
     private static final Logger LOG = LoggerFactory.getLogger(ReactiveSqsClient.class);
@@ -63,20 +79,19 @@ public class ReactiveSqsClient {
     private volatile boolean stopRequested = false;
 
     /**
-     *
-     * @param arn
+     * Creates a new {@link ReactiveSqsClient} instance pointing to the default AWS region (us-east-1).
      */
-    public ReactiveSqsClient(String arn) {
-        this(arn, Regions.US_EAST_1);
+    public ReactiveSqsClient() {
+        this(Regions.US_EAST_1);
         LOG.info("No region was specified when creating the ReactiveSqsClient.  Using the default region: us-east-1");
     }
 
     /**
+     * Creates a new {@link ReactiveSqsClient} instance pointing to the specified AWS region.
      *
-     * @param arn
-     * @param region
+     * @param region AWS region
      */
-    public ReactiveSqsClient(String arn, Regions region) {
+    public ReactiveSqsClient(Regions region) {
         this.sqsClient = new AmazonSQSAsyncClient(new DefaultAWSCredentialsProviderChain());
         this.sqsClient.setRegion(Region.getRegion(region));
     }
