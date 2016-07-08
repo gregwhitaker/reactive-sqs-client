@@ -28,3 +28,36 @@ jar {
     baseName = "${artifact}"
     version = "${releaseVersion}"
 }
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+
+            artifact sourcesJar
+            artifact javadocJar
+        }
+    }
+}
+
+bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayKey') ? project.property('bintrayKey') : System.getenv('BINTRAY_KEY')
+    publications = ['maven']
+    pkg {
+        repo = 'gregwhitaker'
+        name = "${artifact}"
+        userOrg = 'ignitr'
+        desc = 'Library of common components used by Ignition SpringBoot projects'
+        websiteUrl = 'https://github.com/gregwhitaker/reactive-sqs-client'
+        issueTrackerUrl = 'https://github.com/gregwhitaker/reactive-sqs-client/issues'
+        vcsUrl = 'https://github.com/gregwhitaker/reactive-sqs-client.git'
+        licenses = ['Apache-2.0']
+        githubRepo = 'gregwhitaker/ignition-springboot-common'
+        githubReleaseNotesFile = 'CHANGELOG.md'
+
+        version {
+            name = "${releaseVersion}"
+        }
+    }
+}
