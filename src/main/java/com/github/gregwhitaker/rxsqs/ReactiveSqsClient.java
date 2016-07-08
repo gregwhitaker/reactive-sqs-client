@@ -28,6 +28,7 @@ import com.amazonaws.services.sqs.model.ListDeadLetterSourceQueuesRequest;
 import com.amazonaws.services.sqs.model.ListDeadLetterSourceQueuesResult;
 import com.amazonaws.services.sqs.model.ListQueuesRequest;
 import com.amazonaws.services.sqs.model.ListQueuesResult;
+import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.PurgeQueueRequest;
 import com.amazonaws.services.sqs.model.PurgeQueueResult;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
@@ -44,9 +45,13 @@ import com.amazonaws.services.sqs.model.SetQueueAttributesResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
+import rx.Subscriber;
+import rx.schedulers.Schedulers;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  *
@@ -55,6 +60,7 @@ public class ReactiveSqsClient {
     private static final Logger LOG = LoggerFactory.getLogger(ReactiveSqsClient.class);
 
     private final AmazonSQSAsyncClient sqsClient;
+    private volatile boolean stopRequested = false;
 
     /**
      *
@@ -76,130 +82,172 @@ public class ReactiveSqsClient {
     }
 
     public Observable<AddPermissionResult> addPermissionAsync(AddPermissionRequest addPermissionRequest) {
-        return null;
+        return Observable.from(sqsClient.addPermissionAsync(addPermissionRequest));
     }
 
     public Observable<ChangeMessageVisibilityResult> changeMessageVisibilityAsync(ChangeMessageVisibilityRequest request) {
-        return null;
+        return Observable.from(sqsClient.changeMessageVisibilityAsync(request));
     }
 
     public Observable<ChangeMessageVisibilityResult> changeMessageVisibilityAsync(String queueUrl, String receiptHandle, Integer visibilityTimeout) {
-        return null;
+        return Observable.from(sqsClient.changeMessageVisibilityAsync(queueUrl, receiptHandle, visibilityTimeout));
     }
 
     public Observable<ChangeMessageVisibilityBatchResult> changeMessageVisibilityBatchAsync(ChangeMessageVisibilityBatchRequest request) {
-        return null;
+        return Observable.from(sqsClient.changeMessageVisibilityBatchAsync(request));
     }
 
     public Observable<ChangeMessageVisibilityBatchResult> changeMessageVisibilityBatchAsync(String queueUrl, List<ChangeMessageVisibilityBatchRequestEntry> entries) {
-        return null;
+        return Observable.from(sqsClient.changeMessageVisibilityBatchAsync(queueUrl, entries));
     }
 
     public Observable<CreateQueueResult> createQueueAsync(CreateQueueRequest request) {
-        return null;
+        return Observable.from(sqsClient.createQueueAsync(request));
     }
 
     public Observable<CreateQueueResult> createQueueAsync(String queueName) {
-        return null;
+        return Observable.from(sqsClient.createQueueAsync(queueName));
     }
 
     public Observable<DeleteMessageResult> deleteMessageAsync(DeleteMessageRequest request) {
-        return null;
+        return Observable.from(sqsClient.deleteMessageAsync(request));
     }
 
     public Observable<DeleteMessageResult> deleteMessageAsync(String queueUrl, String receiptHandle) {
-        return null;
+        return Observable.from(sqsClient.deleteMessageAsync(queueUrl, receiptHandle));
     }
 
     public Observable<DeleteMessageBatchResult> deleteMessageBatchAsync(DeleteMessageBatchRequest request) {
-        return null;
+        return Observable.from(sqsClient.deleteMessageBatchAsync(request));
     }
 
     public Observable<DeleteMessageBatchResult> deleteMessageBatchAsync(String queueUrl, List<DeleteMessageBatchRequestEntry> entries) {
-        return null;
+        return Observable.from(sqsClient.deleteMessageBatchAsync(queueUrl, entries));
     }
 
     public Observable<DeleteQueueResult> deleteQueueAsync(DeleteQueueRequest request) {
-        return null;
+        return Observable.from(sqsClient.deleteQueueAsync(request));
     }
 
     public Observable<DeleteQueueResult> deleteQueueAsync(String queueUrl) {
-        return null;
+        return Observable.from(sqsClient.deleteQueueAsync(queueUrl));
     }
 
     public Observable<GetQueueAttributesResult> getQueueAttributesAsync(GetQueueAttributesRequest request) {
-        return null;
+        return Observable.from(sqsClient.getQueueAttributesAsync(request));
     }
 
     public Observable<GetQueueAttributesResult> getQueueAttributesAsync(String queueUrl, List<String> attributeNames) {
-        return null;
+        return Observable.from(sqsClient.getQueueAttributesAsync(queueUrl, attributeNames));
     }
 
     public Observable<GetQueueUrlResult> getQueueUrlAsync(GetQueueUrlRequest request) {
-        return null;
+        return Observable.from(sqsClient.getQueueUrlAsync(request));
     }
 
     public Observable<GetQueueUrlResult> getQueueUrlAsync(String queueName) {
-        return null;
+        return Observable.from(sqsClient.getQueueUrlAsync(queueName));
     }
 
     public Observable<ListDeadLetterSourceQueuesResult> listDeadLetterSourceQueuesAsync(ListDeadLetterSourceQueuesRequest request) {
-        return null;
+        return Observable.from(sqsClient.listDeadLetterSourceQueuesAsync(request));
     }
 
     public Observable<ListQueuesResult> listQueuesAsync(ListQueuesRequest request) {
-        return null;
+        return Observable.from(sqsClient.listQueuesAsync(request));
     }
 
     public Observable<ListQueuesResult> listQueuesAsync() {
-        return null;
+        return Observable.from(sqsClient.listQueuesAsync());
     }
 
     public Observable<ListQueuesResult> listQueuesAsync(String queueNamePrefix) {
-        return null;
+        return Observable.from(sqsClient.listQueuesAsync(queueNamePrefix));
     }
 
     public Observable<PurgeQueueResult> purgeQueueAsync(PurgeQueueRequest request) {
-        return null;
+        return Observable.from(sqsClient.purgeQueueAsync(request));
     }
 
-    public Observable<ReceiveMessageResult> receiveMessageAsync(ReceiveMessageRequest request) {
-        return null;
+    public Observable<Message> receiveMessageAsync(ReceiveMessageRequest request) {
+        return Observable.create(new Observable.OnSubscribe<Message>() {
+            @Override
+            public void call(Subscriber<? super Message> subscriber) {
+                while (!stopRequested) {
+                    Future<ReceiveMessageResult> future = sqsClient.receiveMessageAsync(request);
+
+                    try {
+                        ReceiveMessageResult result = future.get();
+
+                        if (result != null) {
+                            result.getMessages().forEach(subscriber::onNext);
+                        }
+                    } catch (InterruptedException e) {
+                        stopRequested = true;
+                    } catch (ExecutionException e) {
+                        subscriber.onError(e);
+                    }
+                }
+
+                subscriber.onCompleted();
+            }
+        }).subscribeOn(Schedulers.io());
     }
 
-    public Observable<ReceiveMessageResult> receiveMessageAsync(String queueUrl) {
-        return null;
+    public Observable<Message> receiveMessageAsync(String queueUrl) {
+        return Observable.create(new Observable.OnSubscribe<Message>() {
+            @Override
+            public void call(Subscriber<? super Message> subscriber) {
+                while (!stopRequested) {
+                    Future<ReceiveMessageResult> future = sqsClient.receiveMessageAsync(queueUrl);
+
+                    try {
+                        ReceiveMessageResult result = future.get();
+
+                        if (result != null) {
+                            result.getMessages().forEach(subscriber::onNext);
+                        }
+                    } catch (InterruptedException e) {
+                        stopRequested = true;
+                    } catch (ExecutionException e) {
+                        subscriber.onError(e);
+                    }
+                }
+
+                subscriber.onCompleted();
+            }
+        }).subscribeOn(Schedulers.io());
     }
 
     public Observable<RemovePermissionResult> removePermissionAsync(RemovePermissionRequest request) {
-        return null;
+        return Observable.from(sqsClient.removePermissionAsync(request));
     }
 
     public Observable<RemovePermissionResult> removePermissionAsync(String queueUrl, String label) {
-        return null;
+        return Observable.from(sqsClient.removePermissionAsync(queueUrl, label));
     }
 
     public Observable<SendMessageResult> sendMessageAsync(SendMessageRequest request) {
-        return null;
+        return Observable.from(sqsClient.sendMessageAsync(request));
     }
 
     public Observable<SendMessageResult> sendMessageAsync(String queueUrl, String messageBody) {
-        return null;
+        return Observable.from(sqsClient.sendMessageAsync(queueUrl, messageBody));
     }
 
     public Observable<SendMessageBatchResult> sendMessageBatchAsync(SendMessageBatchRequest request) {
-        return null;
+        return Observable.from(sqsClient.sendMessageBatchAsync(request));
     }
 
     public Observable<SendMessageBatchResult> sendMessageBatchAsync(String queueUrl, List<SendMessageBatchRequestEntry> entries) {
-        return null;
+        return Observable.from(sqsClient.sendMessageBatchAsync(queueUrl, entries));
     }
 
     public Observable<SetQueueAttributesResult> setQueueAttributesAsync(SetQueueAttributesRequest request) {
-        return null;
+        return Observable.from(sqsClient.setQueueAttributesAsync(request));
     }
 
     public Observable<SetQueueAttributesResult> setQueueAttributesAsync(String queueUrl, Map<String, String> attributes) {
-        return null;
+        return Observable.from(sqsClient.setQueueAttributesAsync(queueUrl, attributes));
     }
 }
