@@ -2,7 +2,9 @@ package com.github.gregwhitaker.rxsqs.examples;
 
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
+import com.amazonaws.services.sqs.model.Message;
 import com.github.gregwhitaker.rxsqs.ReactiveSqsClient;
+import rx.Observable;
 import rx.schedulers.Schedulers;
 
 /**
@@ -36,7 +38,13 @@ public class Consumer implements Runnable {
                     rxSqsClient.receiveMessageAsync(url)
                             .subscribeOn(Schedulers.io())
                             .subscribe(message -> {
-                                System.out.println(name + ": " + message.getBody());
+                                System.out.println(name + ": " + message.getBody() + "[" + message.getMessageId() + "]");
+
+                                rxSqsClient.deleteMessageAsync(url, message.getReceiptHandle())
+                                        .toBlocking()
+                                        .subscribe(result -> {
+                                            System.out.println("Acknowledged Message " + message.getMessageId());
+                                        });
                             }, Throwable::printStackTrace);
                 });
     }

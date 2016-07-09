@@ -194,8 +194,11 @@ public class ReactiveSqsClient {
                     try {
                         ReceiveMessageResult result = future.get();
 
-                        if (result != null) {
+                        if (result != null && !result.getMessages().isEmpty()) {
                             result.getMessages().forEach(subscriber::onNext);
+                        } else {
+                            // This is to prevent rate limiting by the AWS api
+                            Thread.sleep(1000);
                         }
                     } catch (InterruptedException e) {
                         stopRequested = true;
@@ -219,8 +222,11 @@ public class ReactiveSqsClient {
                     try {
                         ReceiveMessageResult result = future.get();
 
-                        if (result != null) {
+                        if (result != null && !result.getMessages().isEmpty()) {
                             result.getMessages().forEach(subscriber::onNext);
+                        } else {
+                            // This is to prevent rate limiting by the AWS api
+                            Thread.sleep(1000);
                         }
                     } catch (InterruptedException e) {
                         stopRequested = true;
