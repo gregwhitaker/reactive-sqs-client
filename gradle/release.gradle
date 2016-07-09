@@ -47,7 +47,7 @@ bintray {
     key = project.hasProperty('bintrayKey') ? project.property('bintrayKey') : System.getenv('BINTRAY_KEY')
     publications = ['maven']
     pkg {
-        repo = 'gregwhitaker'
+        repo = 'maven'
         name = "${artifact}"
         userOrg = 'gregwhitaker'
         desc = 'An observable Amazon Web Services Simple Queue Service client'
