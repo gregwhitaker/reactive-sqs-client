@@ -1,12 +1,16 @@
 language: java
+sudo: false
 jdk:
-  - oraclejdk8
+- oraclejdk8
+install: true
+script: ./buildtravis.sh
 before_cache:
 - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
 cache:
   directories:
   - $HOME/.gradle/caches/
   - $HOME/.gradle/wrapper/
+  - $HOME/.m2
 env:
   global:
   - secure: "jzm9xuzcEd5s6U2JpRoh6o6tiO3KPF2S3qOZ8KKoR4UCPHGpyR12Uc4/txQIqmBTZDTpXBbG5u1UjE2Tzgtc/Kl2crOqFFm4HZEdyD0doRbe2iEuhaIAEmxuXKJRNe2hj+jSYEyjhWdU64H1g+DJs2fWeiS4QPG51YYRY+lIuIKSPgNMnVpvaU45skbpkAXFcJxqjSSGtZHs38URhZNSOa6Oi8tbE9DgjC2Nl679gIkQKeaF7UTLLp5+bGyyjdRBkaAp70Yp/4bq5d/SbXQM9TBAdk1aoiTrsvh1qXk77ExbMmzaYXf3TQpSnS4unY7hWxh3gWkKO44l4BtoUV3IOP58X0yfjJvhB49c4KGYksND4wS21mZjk85gqfFssZllG4f1ajMa8pW2F1UsJcvBBfVzzLypYmjr3jiC7qS64g/+zca23hJN82sjCLi92+Z607iPUCisQOPNIBqvEBQHk3ldABc4wtXq65zAgUc+499EYZ0PqTD8Hxd6tPNxkPuTJIRqt27D7vhp5LeQC2dBwd0dsVQTXdyR/7Iq+BBrBQ+w1asFQvtG+KgrErS6s8b92hCQdir68u+xxO8LOoxT+IDAirOOYrrUZQf8zH35WvUA9Zr5C1cMUJ16nBb6LwuI2hF+W8fvLqiJPJpLKWfvRlon+cKx3pDhts6Qs7kHAJQ="
