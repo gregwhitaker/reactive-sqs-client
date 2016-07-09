@@ -1,7 +1,7 @@
 reactive-sqs-client
 ===
 
-[![Build Status](https://travis-ci.org/gregwhitaker/reactive-sqs-client.svg?branch=master)](https://travis-ci.org/gregwhitaker/reactive-sqs-client)
+[![Build Status](https://travis-ci.org/gregwhitaker/reactive-sqs-client.svg?branch=master)](https://travis-ci.org/gregwhitaker/reactive-sqs-client)  [ ![Download](https://api.bintray.com/packages/gregwhitaker/maven/reactive-sqs-client/images/download.svg) ](https://bintray.com/gregwhitaker/maven/reactive-sqs-client/_latestVersion)
 
 An observable client for AWS [Simple Queue Service](https://aws.amazon.com/sqs/) using RxJava.
 
