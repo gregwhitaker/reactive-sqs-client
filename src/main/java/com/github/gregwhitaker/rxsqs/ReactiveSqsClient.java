@@ -20,7 +20,44 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQSAsyncClient;
-import com.amazonaws.services.sqs.model.*;
+import com.amazonaws.services.sqs.model.AddPermissionRequest;
+import com.amazonaws.services.sqs.model.AddPermissionResult;
+import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
+import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequestEntry;
+import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchResult;
+import com.amazonaws.services.sqs.model.ChangeMessageVisibilityRequest;
+import com.amazonaws.services.sqs.model.ChangeMessageVisibilityResult;
+import com.amazonaws.services.sqs.model.CreateQueueRequest;
+import com.amazonaws.services.sqs.model.CreateQueueResult;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchResult;
+import com.amazonaws.services.sqs.model.DeleteMessageRequest;
+import com.amazonaws.services.sqs.model.DeleteMessageResult;
+import com.amazonaws.services.sqs.model.DeleteQueueRequest;
+import com.amazonaws.services.sqs.model.DeleteQueueResult;
+import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
+import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
+import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
+import com.amazonaws.services.sqs.model.GetQueueUrlResult;
+import com.amazonaws.services.sqs.model.ListDeadLetterSourceQueuesRequest;
+import com.amazonaws.services.sqs.model.ListDeadLetterSourceQueuesResult;
+import com.amazonaws.services.sqs.model.ListQueuesRequest;
+import com.amazonaws.services.sqs.model.ListQueuesResult;
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.PurgeQueueRequest;
+import com.amazonaws.services.sqs.model.PurgeQueueResult;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import com.amazonaws.services.sqs.model.RemovePermissionRequest;
+import com.amazonaws.services.sqs.model.RemovePermissionResult;
+import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
+import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
+import com.amazonaws.services.sqs.model.SendMessageBatchResult;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.amazonaws.services.sqs.model.SendMessageResult;
+import com.amazonaws.services.sqs.model.SetQueueAttributesRequest;
+import com.amazonaws.services.sqs.model.SetQueueAttributesResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -37,6 +74,8 @@ import java.util.concurrent.Future;
  */
 public class ReactiveSqsClient {
     private static final Logger LOG = LoggerFactory.getLogger(ReactiveSqsClient.class);
+    private static final Long DEFAULT_BACKOFF = 1000L;
+    private static final Long MAX_BACKOFF = 64000L;
 
     private final AmazonSQSAsyncClient sqsClient;
     private volatile boolean stopRequested = false;
@@ -151,6 +190,8 @@ public class ReactiveSqsClient {
         return Observable.create(new Observable.OnSubscribe<Message>() {
             @Override
             public void call(Subscriber<? super Message> subscriber) {
+                long backoff = DEFAULT_BACKOFF;
+
                 while (!stopRequested) {
                     Future<ReceiveMessageResult> future = sqsClient.receiveMessageAsync(request);
 
@@ -158,10 +199,17 @@ public class ReactiveSqsClient {
                         ReceiveMessageResult result = future.get();
 
                         if (result != null && !result.getMessages().isEmpty()) {
+                            backoff = DEFAULT_BACKOFF;
                             result.getMessages().forEach(subscriber::onNext);
                         } else {
+                            if (backoff < MAX_BACKOFF) {
+                                backoff = backoff * 2;
+                            }
+
+                            LOG.debug("No messages found on queue.  Sleeping for {} ms.", backoff);
+
                             // This is to prevent rate limiting by the AWS api
-                            Thread.sleep(1000);
+                            Thread.sleep(backoff);
                         }
                     } catch (InterruptedException e) {
                         stopRequested = true;
@@ -179,6 +227,8 @@ public class ReactiveSqsClient {
         return Observable.create(new Observable.OnSubscribe<Message>() {
             @Override
             public void call(Subscriber<? super Message> subscriber) {
+                long backoff = DEFAULT_BACKOFF;
+
                 while (!stopRequested) {
                     Future<ReceiveMessageResult> future = sqsClient.receiveMessageAsync(queueUrl);
 
@@ -186,10 +236,17 @@ public class ReactiveSqsClient {
                         ReceiveMessageResult result = future.get();
 
                         if (result != null && !result.getMessages().isEmpty()) {
+                            backoff = DEFAULT_BACKOFF;
                             result.getMessages().forEach(subscriber::onNext);
                         } else {
+                            if (backoff < MAX_BACKOFF) {
+                                backoff = backoff * 2;
+                            }
+
+                            LOG.debug("No messages found on queue.  Sleeping for {} ms.", backoff);
+
                             // This is to prevent rate limiting by the AWS api
-                            Thread.sleep(1000);
+                            Thread.sleep(backoff);
                         }
                     } catch (InterruptedException e) {
                         stopRequested = true;
