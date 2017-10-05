@@ -1,11 +1,9 @@
-reactive-sqs-client
-===
-
+# reactive-sqs-client
 [![Build Status](https://travis-ci.org/gregwhitaker/reactive-sqs-client.svg?branch=master)](https://travis-ci.org/gregwhitaker/reactive-sqs-client)  [ ![Download](https://api.bintray.com/packages/gregwhitaker/maven/reactive-sqs-client/images/download.svg) ](https://bintray.com/gregwhitaker/maven/reactive-sqs-client/_latestVersion)
 
 An observable client for AWS [Simple Queue Service](https://aws.amazon.com/sqs/) using RxJava.
 
-##Running the Example
+## Running the Example
 The example can be run using the following gradle command:
 
 ```
@@ -14,7 +12,7 @@ $ ./gradlew run -DqueueName={name of sqs queue} -Dregion={aws region}
 
 **NOTE:** The example is using the `DefaultAWSCredentialsProvider` so you can supply your AWS credentials using the `.aws/credentials` file, as system properties, or as environment variables.
 
-##License
+## License
 Copyright 2016 Greg Whitaker
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
