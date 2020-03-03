@@ -2,12 +2,27 @@ buildscript {
     apply from: file('gradle/buildscript.gradle'), to: buildscript
 }
 
-apply plugin: 'java'
-apply plugin: 'application'
+plugins {
+    id "java-library"
+    id "application"
+    id "idea"
+}
 
-apply from: file('gradle/codequality.gradle')
-apply from: file('gradle/release.gradle')
-apply from: file('gradle/convention.gradle')
+sourceCompatibility = 1.8
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+dependencies {
+    api 'io.projectreactor:reactor-core:3.3.3.RELEASE'
+    api 'software.amazon.awssdk:sqs:2.10.76'
+
+    implementation 'org.slf4j:slf4j-api:1.7.21'
+
+    runtime 'org.slf4j:slf4j-simple:1.7.21'
+}
 
 sourceSets {
     examples {
@@ -21,17 +36,6 @@ sourceSets {
 configurations {
     examplesCompile.extendsFrom testCompile
     examplesRuntime.extendsFrom testRuntime
-}
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    compile('com.amazonaws:aws-java-sdk-sqs:1.11.13')
-    compile('io.reactivex:rxjava:1.1.6')
-    compile('io.reactivex:rxjava-reactive-streams:1.1.0')
-    compile('org.slf4j:slf4j-api:1.7.21')
 }
 
 run {

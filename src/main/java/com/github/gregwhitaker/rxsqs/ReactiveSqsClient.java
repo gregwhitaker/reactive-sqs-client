@@ -16,75 +16,37 @@
 
 package com.github.gregwhitaker.rxsqs;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.sqs.AmazonSQSAsyncClient;
-import com.amazonaws.services.sqs.model.AddPermissionRequest;
-import com.amazonaws.services.sqs.model.AddPermissionResult;
-import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
-import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequestEntry;
-import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchResult;
-import com.amazonaws.services.sqs.model.ChangeMessageVisibilityRequest;
-import com.amazonaws.services.sqs.model.ChangeMessageVisibilityResult;
-import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchResult;
-import com.amazonaws.services.sqs.model.DeleteMessageRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageResult;
-import com.amazonaws.services.sqs.model.DeleteQueueRequest;
-import com.amazonaws.services.sqs.model.DeleteQueueResult;
-import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
-import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
-import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
-import com.amazonaws.services.sqs.model.ListDeadLetterSourceQueuesRequest;
-import com.amazonaws.services.sqs.model.ListDeadLetterSourceQueuesResult;
-import com.amazonaws.services.sqs.model.ListQueuesRequest;
-import com.amazonaws.services.sqs.model.ListQueuesResult;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.PurgeQueueRequest;
-import com.amazonaws.services.sqs.model.PurgeQueueResult;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import com.amazonaws.services.sqs.model.RemovePermissionRequest;
-import com.amazonaws.services.sqs.model.RemovePermissionResult;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.SendMessageBatchResult;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.amazonaws.services.sqs.model.SendMessageResult;
-import com.amazonaws.services.sqs.model.SetQueueAttributesRequest;
-import com.amazonaws.services.sqs.model.SetQueueAttributesResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Subscriber;
-import rx.schedulers.Schedulers;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.model.*;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 /**
- * An {@link Observable} wrapper around the Amazon Web Services Simple Queue Service (SQS) client.
+ * A reactive wrapper, using Project Reactor, around the Amazon Web Services Simple Queue Service (SQS) client.
  */
 public class ReactiveSqsClient {
     private static final Logger LOG = LoggerFactory.getLogger(ReactiveSqsClient.class);
     private static final Long DEFAULT_BACKOFF = 1000L;
     private static final Long MAX_BACKOFF = 64000L;
 
-    private final AmazonSQSAsyncClient sqsClient;
+    private final SqsAsyncClient sqs;
     private volatile boolean stopRequested = false;
 
     /**
      * Creates a new {@link ReactiveSqsClient} instance pointing to the default AWS region (us-east-1).
      */
     public ReactiveSqsClient() {
-        this(Regions.US_EAST_1);
+        this(Region.US_EAST_1);
         LOG.info("No region was specified when creating the ReactiveSqsClient.  Using the default region: us-east-1");
     }
 
@@ -93,202 +55,248 @@ public class ReactiveSqsClient {
      *
      * @param region AWS region
      */
-    public ReactiveSqsClient(Regions region) {
-        this.sqsClient = new AmazonSQSAsyncClient(new DefaultAWSCredentialsProviderChain());
-        this.sqsClient.setRegion(Region.getRegion(region));
+    public ReactiveSqsClient(Region region) {
+        this.sqs = SqsAsyncClient.builder()
+                .credentialsProvider(DefaultCredentialsProvider.builder().build())
+                .region(region)
+                .build();
     }
 
-    public Observable<AddPermissionResult> addPermissionAsync(AddPermissionRequest addPermissionRequest) {
-        return Observable.from(sqsClient.addPermissionAsync(addPermissionRequest));
+    public Mono<AddPermissionResponse> addPermission(AddPermissionRequest addPermissionRequest) {
+        return Mono.fromFuture(sqs.addPermission(addPermissionRequest));
     }
 
-    public Observable<ChangeMessageVisibilityResult> changeMessageVisibilityAsync(ChangeMessageVisibilityRequest request) {
-        return Observable.from(sqsClient.changeMessageVisibilityAsync(request));
+    public Mono<AddPermissionResponse> addPermission(Consumer<AddPermissionRequest.Builder> addPermissionRequest) {
+        return Mono.fromFuture(sqs.addPermission(AddPermissionRequest.builder().applyMutation(addPermissionRequest).build()));
     }
 
-    public Observable<ChangeMessageVisibilityResult> changeMessageVisibilityAsync(String queueUrl, String receiptHandle, Integer visibilityTimeout) {
-        return Observable.from(sqsClient.changeMessageVisibilityAsync(queueUrl, receiptHandle, visibilityTimeout));
+    public Mono<ChangeMessageVisibilityResponse> changeMessageVisibility(ChangeMessageVisibilityRequest changeMessageVisibilityRequest) {
+        return Mono.fromFuture(sqs.changeMessageVisibility(changeMessageVisibilityRequest));
     }
 
-    public Observable<ChangeMessageVisibilityBatchResult> changeMessageVisibilityBatchAsync(ChangeMessageVisibilityBatchRequest request) {
-        return Observable.from(sqsClient.changeMessageVisibilityBatchAsync(request));
+    public Mono<ChangeMessageVisibilityResponse> changeMessageVisibility(Consumer<ChangeMessageVisibilityRequest.Builder> changeMessageVisibilityRequest) {
+        return Mono.fromFuture(sqs.changeMessageVisibility(ChangeMessageVisibilityRequest.builder().applyMutation(changeMessageVisibilityRequest).build()));
     }
 
-    public Observable<ChangeMessageVisibilityBatchResult> changeMessageVisibilityBatchAsync(String queueUrl, List<ChangeMessageVisibilityBatchRequestEntry> entries) {
-        return Observable.from(sqsClient.changeMessageVisibilityBatchAsync(queueUrl, entries));
+    public Mono<ChangeMessageVisibilityBatchResponse> changeMessageVisibilityBatch(ChangeMessageVisibilityBatchRequest changeMessageVisibilityBatchRequest) {
+        return Mono.fromFuture(sqs.changeMessageVisibilityBatch(changeMessageVisibilityBatchRequest));
     }
 
-    public Observable<CreateQueueResult> createQueueAsync(CreateQueueRequest request) {
-        return Observable.from(sqsClient.createQueueAsync(request));
+    public Mono<ChangeMessageVisibilityBatchResponse> changeMessageVisibilityBatch(Consumer<ChangeMessageVisibilityBatchRequest.Builder> changeMessageVisibilityBatchRequest) {
+        return Mono.fromFuture(sqs.changeMessageVisibilityBatch(ChangeMessageVisibilityBatchRequest.builder().applyMutation(changeMessageVisibilityBatchRequest).build()));
     }
 
-    public Observable<CreateQueueResult> createQueueAsync(String queueName) {
-        return Observable.from(sqsClient.createQueueAsync(queueName));
+    public Mono<CreateQueueResponse> createQueue(CreateQueueRequest createQueueRequest) {
+        return Mono.fromFuture(sqs.createQueue(createQueueRequest));
     }
 
-    public Observable<DeleteMessageResult> deleteMessageAsync(DeleteMessageRequest request) {
-        return Observable.from(sqsClient.deleteMessageAsync(request));
+    public Mono<CreateQueueResponse> createQueue(Consumer<CreateQueueRequest.Builder> createQueueRequest) {
+        return Mono.fromFuture(sqs.createQueue(CreateQueueRequest.builder().applyMutation(createQueueRequest).build()));
     }
 
-    public Observable<DeleteMessageResult> deleteMessageAsync(String queueUrl, String receiptHandle) {
-        return Observable.from(sqsClient.deleteMessageAsync(queueUrl, receiptHandle));
+    public Mono<DeleteMessageResponse> deleteMessage(DeleteMessageRequest deleteMessageRequest) {
+        return Mono.fromFuture(sqs.deleteMessage(deleteMessageRequest));
     }
 
-    public Observable<DeleteMessageBatchResult> deleteMessageBatchAsync(DeleteMessageBatchRequest request) {
-        return Observable.from(sqsClient.deleteMessageBatchAsync(request));
+    public Mono<DeleteMessageResponse> deleteMessage(Consumer<DeleteMessageRequest.Builder> deleteMessageRequest) {
+        return Mono.fromFuture(sqs.deleteMessage(DeleteMessageRequest.builder().applyMutation(deleteMessageRequest).build()));
     }
 
-    public Observable<DeleteMessageBatchResult> deleteMessageBatchAsync(String queueUrl, List<DeleteMessageBatchRequestEntry> entries) {
-        return Observable.from(sqsClient.deleteMessageBatchAsync(queueUrl, entries));
+    public Mono<DeleteMessageBatchResponse> deleteMessageBatch(DeleteMessageBatchRequest deleteMessageBatchRequest) {
+        return Mono.fromFuture(sqs.deleteMessageBatch(deleteMessageBatchRequest));
     }
 
-    public Observable<DeleteQueueResult> deleteQueueAsync(DeleteQueueRequest request) {
-        return Observable.from(sqsClient.deleteQueueAsync(request));
+    public Mono<DeleteMessageBatchResponse> deleteMessageBatch(Consumer<DeleteMessageBatchRequest.Builder> deleteMessageBatchRequest) {
+        return Mono.fromFuture(sqs.deleteMessageBatch(DeleteMessageBatchRequest.builder().applyMutation(deleteMessageBatchRequest).build()));
     }
 
-    public Observable<DeleteQueueResult> deleteQueueAsync(String queueUrl) {
-        return Observable.from(sqsClient.deleteQueueAsync(queueUrl));
+    public Mono<DeleteQueueResponse> deleteQueue(DeleteQueueRequest deleteQueueRequest) {
+        return Mono.fromFuture(sqs.deleteQueue(deleteQueueRequest));
     }
 
-    public Observable<GetQueueAttributesResult> getQueueAttributesAsync(GetQueueAttributesRequest request) {
-        return Observable.from(sqsClient.getQueueAttributesAsync(request));
+    public Mono<DeleteQueueResponse> deleteQueue(Consumer<DeleteQueueRequest.Builder> deleteQueueRequest) {
+        return Mono.fromFuture(sqs.deleteQueue(DeleteQueueRequest.builder().applyMutation(deleteQueueRequest).build()));
     }
 
-    public Observable<GetQueueAttributesResult> getQueueAttributesAsync(String queueUrl, List<String> attributeNames) {
-        return Observable.from(sqsClient.getQueueAttributesAsync(queueUrl, attributeNames));
+    public Mono<GetQueueAttributesResponse> getQueueAttributes(GetQueueAttributesRequest getQueueAttributesRequest) {
+        return Mono.fromFuture(sqs.getQueueAttributes(getQueueAttributesRequest));
     }
 
-    public Observable<GetQueueUrlResult> getQueueUrlAsync(GetQueueUrlRequest request) {
-        return Observable.from(sqsClient.getQueueUrlAsync(request));
+    public Mono<GetQueueAttributesResponse> getQueueAttributes(Consumer<GetQueueAttributesRequest.Builder> getQueueAttributesRequest) {
+        return Mono.fromFuture(sqs.getQueueAttributes(GetQueueAttributesRequest.builder().applyMutation(getQueueAttributesRequest).build()));
     }
 
-    public Observable<GetQueueUrlResult> getQueueUrlAsync(String queueName) {
-        return Observable.from(sqsClient.getQueueUrlAsync(queueName));
+    public Mono<GetQueueUrlResponse> getQueueUrl(GetQueueUrlRequest getQueueUrlRequest) {
+        return Mono.fromFuture(sqs.getQueueUrl(getQueueUrlRequest));
     }
 
-    public Observable<ListDeadLetterSourceQueuesResult> listDeadLetterSourceQueuesAsync(ListDeadLetterSourceQueuesRequest request) {
-        return Observable.from(sqsClient.listDeadLetterSourceQueuesAsync(request));
+    public Mono<GetQueueUrlResponse> getQueueUrl(Consumer<GetQueueUrlRequest.Builder> getQueueUrlRequest) {
+        return Mono.fromFuture(sqs.getQueueUrl(GetQueueUrlRequest.builder().applyMutation(getQueueUrlRequest).build()));
     }
 
-    public Observable<ListQueuesResult> listQueuesAsync(ListQueuesRequest request) {
-        return Observable.from(sqsClient.listQueuesAsync(request));
+    public Mono<ListDeadLetterSourceQueuesResponse> listDeadLetterSourceQueues(ListDeadLetterSourceQueuesRequest listDeadLetterSourceQueuesRequest) {
+        return Mono.fromFuture(sqs.listDeadLetterSourceQueues(listDeadLetterSourceQueuesRequest));
     }
 
-    public Observable<ListQueuesResult> listQueuesAsync() {
-        return Observable.from(sqsClient.listQueuesAsync());
+    public Mono<ListDeadLetterSourceQueuesResponse> listDeadLetterSourceQueues(Consumer<ListDeadLetterSourceQueuesRequest.Builder> listDeadLetterSourceQueuesRequest) {
+        return Mono.fromFuture(sqs.listDeadLetterSourceQueues(ListDeadLetterSourceQueuesRequest.builder().applyMutation(listDeadLetterSourceQueuesRequest).build()));
     }
 
-    public Observable<ListQueuesResult> listQueuesAsync(String queueNamePrefix) {
-        return Observable.from(sqsClient.listQueuesAsync(queueNamePrefix));
+    public Mono<ListQueueTagsResponse> listQueueTags(ListQueueTagsRequest listQueueTagsRequest) {
+        return Mono.fromFuture(sqs.listQueueTags(listQueueTagsRequest));
     }
 
-    public Observable<PurgeQueueResult> purgeQueueAsync(PurgeQueueRequest request) {
-        return Observable.from(sqsClient.purgeQueueAsync(request));
+    public Mono<ListQueueTagsResponse> listQueueTags(Consumer<ListQueueTagsRequest.Builder> listQueueTagsRequest) {
+        return Mono.fromFuture(sqs.listQueueTags(ListQueueTagsRequest.builder().applyMutation(listQueueTagsRequest).build()));
     }
 
-    public Observable<Message> receiveMessageAsync(ReceiveMessageRequest request) {
-        return Observable.create(new Observable.OnSubscribe<Message>() {
-            @Override
-            public void call(Subscriber<? super Message> subscriber) {
-                long backoff = DEFAULT_BACKOFF;
-
-                while (!stopRequested) {
-                    Future<ReceiveMessageResult> future = sqsClient.receiveMessageAsync(request);
-
-                    try {
-                        ReceiveMessageResult result = future.get();
-
-                        if (result != null && !result.getMessages().isEmpty()) {
-                            backoff = DEFAULT_BACKOFF;
-                            result.getMessages().forEach(subscriber::onNext);
-                        } else {
-                            if (backoff < MAX_BACKOFF) {
-                                backoff = backoff * 2;
-                            }
-
-                            LOG.debug("No messages found on queue.  Sleeping for {} ms.", backoff);
-
-                            // This is to prevent rate limiting by the AWS api
-                            Thread.sleep(backoff);
-                        }
-                    } catch (InterruptedException e) {
-                        stopRequested = true;
-                    } catch (ExecutionException e) {
-                        subscriber.onError(e);
-                    }
-                }
-
-                subscriber.onCompleted();
-            }
-        }).subscribeOn(Schedulers.io());
+    public Mono<ListQueuesResponse> listQueues(ListQueuesRequest listQueuesRequest) {
+        return Mono.fromFuture(sqs.listQueues(listQueuesRequest));
     }
 
-    public Observable<Message> receiveMessageAsync(String queueUrl) {
-        return Observable.create(new Observable.OnSubscribe<Message>() {
-            @Override
-            public void call(Subscriber<? super Message> subscriber) {
-                long backoff = DEFAULT_BACKOFF;
-
-                while (!stopRequested) {
-                    Future<ReceiveMessageResult> future = sqsClient.receiveMessageAsync(queueUrl);
-
-                    try {
-                        ReceiveMessageResult result = future.get();
-
-                        if (result != null && !result.getMessages().isEmpty()) {
-                            backoff = DEFAULT_BACKOFF;
-                            result.getMessages().forEach(subscriber::onNext);
-                        } else {
-                            if (backoff < MAX_BACKOFF) {
-                                backoff = backoff * 2;
-                            }
-
-                            LOG.debug("No messages found on queue.  Sleeping for {} ms.", backoff);
-
-                            // This is to prevent rate limiting by the AWS api
-                            Thread.sleep(backoff);
-                        }
-                    } catch (InterruptedException e) {
-                        stopRequested = true;
-                    } catch (ExecutionException e) {
-                        subscriber.onError(e);
-                    }
-                }
-
-                subscriber.onCompleted();
-            }
-        }).subscribeOn(Schedulers.io());
+    public Mono<ListQueuesResponse> listQueues(Consumer<ListQueuesRequest.Builder> listQueuesRequest) {
+        return Mono.fromFuture(sqs.listQueues(ListQueuesRequest.builder().applyMutation(listQueuesRequest).build()));
     }
 
-    public Observable<RemovePermissionResult> removePermissionAsync(RemovePermissionRequest request) {
-        return Observable.from(sqsClient.removePermissionAsync(request));
+    public Mono<ListQueuesResponse> listQueues() {
+        return Mono.fromFuture(sqs.listQueues());
     }
 
-    public Observable<RemovePermissionResult> removePermissionAsync(String queueUrl, String label) {
-        return Observable.from(sqsClient.removePermissionAsync(queueUrl, label));
+    public Mono<PurgeQueueResponse> purgeQueue(PurgeQueueRequest purgeQueueRequest) {
+        return Mono.fromFuture(sqs.purgeQueue(purgeQueueRequest));
     }
 
-    public Observable<SendMessageResult> sendMessageAsync(SendMessageRequest request) {
-        return Observable.from(sqsClient.sendMessageAsync(request));
+    public Mono<PurgeQueueResponse> purgeQueue(Consumer<PurgeQueueRequest.Builder> purgeQueueRequest) {
+        return Mono.fromFuture(sqs.purgeQueue(PurgeQueueRequest.builder().applyMutation(purgeQueueRequest).build()));
     }
 
-    public Observable<SendMessageResult> sendMessageAsync(String queueUrl, String messageBody) {
-        return Observable.from(sqsClient.sendMessageAsync(queueUrl, messageBody));
+    public Flux<ReceiveMessageResponse> receiveMessage(ReceiveMessageRequest receiveMessageRequest) {
+        return null;
     }
 
-    public Observable<SendMessageBatchResult> sendMessageBatchAsync(SendMessageBatchRequest request) {
-        return Observable.from(sqsClient.sendMessageBatchAsync(request));
+    public Flux<ReceiveMessageResponse> receiveMessage(Consumer<ReceiveMessageRequest.Builder> receiveMessageRequest) {
+        return null;
     }
 
-    public Observable<SendMessageBatchResult> sendMessageBatchAsync(String queueUrl, List<SendMessageBatchRequestEntry> entries) {
-        return Observable.from(sqsClient.sendMessageBatchAsync(queueUrl, entries));
+//    public Observable<Message> receiveMessageAsync(ReceiveMessageRequest request) {
+//        return Observable.create(new Observable.OnSubscribe<Message>() {
+//            @Override
+//            public void call(Subscriber<? super Message> subscriber) {
+//                long backoff = DEFAULT_BACKOFF;
+//
+//                while (!stopRequested) {
+//                    Future<ReceiveMessageResult> future = sqs.receiveMessageAsync(request);
+//
+//                    try {
+//                        ReceiveMessageResult result = future.get();
+//
+//                        if (result != null && !result.getMessages().isEmpty()) {
+//                            backoff = DEFAULT_BACKOFF;
+//                            result.getMessages().forEach(subscriber::onNext);
+//                        } else {
+//                            if (backoff < MAX_BACKOFF) {
+//                                backoff = backoff * 2;
+//                            }
+//
+//                            LOG.debug("No messages found on queue.  Sleeping for {} ms.", backoff);
+//
+//                            // This is to prevent rate limiting by the AWS api
+//                            Thread.sleep(backoff);
+//                        }
+//                    } catch (InterruptedException e) {
+//                        stopRequested = true;
+//                    } catch (ExecutionException e) {
+//                        subscriber.onError(e);
+//                    }
+//                }
+//
+//                subscriber.onCompleted();
+//            }
+//        }).subscribeOn(Schedulers.io());
+//    }
+//
+//    public Observable<Message> receiveMessageAsync(String queueUrl) {
+//        return Observable.create(new Observable.OnSubscribe<Message>() {
+//            @Override
+//            public void call(Subscriber<? super Message> subscriber) {
+//                long backoff = DEFAULT_BACKOFF;
+//
+//                while (!stopRequested) {
+//                    Future<ReceiveMessageResult> future = sqs.receiveMessageAsync(queueUrl);
+//
+//                    try {
+//                        ReceiveMessageResult result = future.get();
+//
+//                        if (result != null && !result.getMessages().isEmpty()) {
+//                            backoff = DEFAULT_BACKOFF;
+//                            result.getMessages().forEach(subscriber::onNext);
+//                        } else {
+//                            if (backoff < MAX_BACKOFF) {
+//                                backoff = backoff * 2;
+//                            }
+//
+//                            LOG.debug("No messages found on queue.  Sleeping for {} ms.", backoff);
+//
+//                            // This is to prevent rate limiting by the AWS api
+//                            Thread.sleep(backoff);
+//                        }
+//                    } catch (InterruptedException e) {
+//                        stopRequested = true;
+//                    } catch (ExecutionException e) {
+//                        subscriber.onError(e);
+//                    }
+//                }
+//
+//                subscriber.onCompleted();
+//            }
+//        }).subscribeOn(Schedulers.io());
+//    }
+
+    public Mono<RemovePermissionResponse> removePermission(RemovePermissionRequest removePermissionRequest) {
+        return Mono.fromFuture(sqs.removePermission(removePermissionRequest));
     }
 
-    public Observable<SetQueueAttributesResult> setQueueAttributesAsync(SetQueueAttributesRequest request) {
-        return Observable.from(sqsClient.setQueueAttributesAsync(request));
+    public Mono<RemovePermissionResponse> removePermission(Consumer<RemovePermissionRequest.Builder> removePermissionRequest) {
+        return Mono.fromFuture(sqs.removePermission(RemovePermissionRequest.builder().applyMutation(removePermissionRequest).build()));
     }
 
-    public Observable<SetQueueAttributesResult> setQueueAttributesAsync(String queueUrl, Map<String, String> attributes) {
-        return Observable.from(sqsClient.setQueueAttributesAsync(queueUrl, attributes));
+    public Mono<SendMessageResponse> sendMessage(SendMessageRequest sendMessageRequest) {
+        return Mono.fromFuture(sqs.sendMessage(sendMessageRequest));
+    }
+
+    public Mono<SendMessageResponse> sendMessage(Consumer<SendMessageRequest.Builder> sendMessageRequest) {
+        return Mono.fromFuture(sqs.sendMessage(SendMessageRequest.builder().applyMutation(sendMessageRequest).build()));
+    }
+
+    public Mono<SendMessageBatchResponse> sendMessageBatch(SendMessageBatchRequest sendMessageBatchRequest) {
+        return Mono.fromFuture(sqs.sendMessageBatch(sendMessageBatchRequest));
+    }
+
+    public Mono<SendMessageBatchResponse> sendMessageBatch(Consumer<SendMessageBatchRequest.Builder> sendMessageBatchRequest) {
+        return Mono.fromFuture(sqs.sendMessageBatch(SendMessageBatchRequest.builder().applyMutation(sendMessageBatchRequest).build()));
+    }
+
+    public Mono<SetQueueAttributesResponse> setQueueAttributes(SetQueueAttributesRequest setQueueAttributesRequest) {
+        return Mono.fromFuture(sqs.setQueueAttributes(setQueueAttributesRequest));
+    }
+
+    public Mono<SetQueueAttributesResponse> setQueueAttributes(Consumer<SetQueueAttributesRequest.Builder> setQueueAttributesRequest) {
+        return Mono.fromFuture(sqs.setQueueAttributes(SetQueueAttributesRequest.builder().applyMutation(setQueueAttributesRequest).build()));
+    }
+
+    public Mono<TagQueueResponse> tagQueue(TagQueueRequest tagQueueRequest) {
+        return Mono.fromFuture(sqs.tagQueue(tagQueueRequest));
+    }
+
+    public Mono<TagQueueResponse> tagQueue(Consumer<TagQueueRequest.Builder> tagQueueRequest) {
+        return Mono.fromFuture(sqs.tagQueue(TagQueueRequest.builder().applyMutation(tagQueueRequest).build()));
+    }
+
+    public Mono<UntagQueueResponse> untagQueue(UntagQueueRequest untagQueueRequest) {
+        return Mono.fromFuture(sqs.untagQueue(untagQueueRequest));
+    }
+
+    public Mono<UntagQueueResponse> untagQueue(Consumer<UntagQueueRequest.Builder> untagQueueRequest) {
+        return Mono.fromFuture(sqs.untagQueue(UntagQueueRequest.builder().applyMutation(untagQueueRequest).build()));
     }
 }
