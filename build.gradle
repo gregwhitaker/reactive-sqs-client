@@ -1,11 +1,8 @@
-buildscript {
-    apply from: file('gradle/buildscript.gradle'), to: buildscript
-}
-
 plugins {
-    id "java-library"
-    id "application"
     id "idea"
+    id "java-library"
+    id "com.github.hierynomus.license"      version "0.14.0"
+    id "com.avast.gradle.docker-compose"    version "0.10.9"
 }
 
 sourceCompatibility = 1.8
@@ -24,22 +21,10 @@ dependencies {
     runtime 'org.slf4j:slf4j-simple:1.7.21'
 }
 
-sourceSets {
-    examples {
-        java {
-            compileClasspath += main.output
-            runtimeClasspath += main.output
-        }
-    }
-}
+dockerCompose.isRequiredBy(test)
 
-configurations {
-    examplesCompile.extendsFrom testCompile
-    examplesRuntime.extendsFrom testRuntime
-}
-
-run {
-    mainClassName = 'com.github.gregwhitaker.rxsqs.examples.ExampleRunner'
-    classpath = sourceSets.examples.runtimeClasspath
-    systemProperties = System.getProperties();
+license {
+    header rootProject.file('codequality/LICENSE_HEADER')
+    strictCheck true
+    excludes([ "**/*.json", "**/*.html", "**/*.js", "**/*.css", "**/*.jpg", "**/*.xml" ])
 }

@@ -1,11 +1,11 @@
-/*
- * Copyright 2016 Greg Whitaker
+/**
+ * Copyright 2016 - 2020 Greg Whitaker
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,22 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.github.gregwhitaker.rxsqs;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 /**
@@ -40,7 +35,6 @@ public class ReactiveSqsClient {
     private static final Long MAX_BACKOFF = 64000L;
 
     private final SqsAsyncClient sqs;
-    private volatile boolean stopRequested = false;
 
     /**
      * Creates a new {@link ReactiveSqsClient} instance pointing to the default AWS region (us-east-1).
@@ -48,6 +42,15 @@ public class ReactiveSqsClient {
     public ReactiveSqsClient() {
         this(Region.US_EAST_1);
         LOG.info("No region was specified when creating the ReactiveSqsClient.  Using the default region: us-east-1");
+    }
+
+    /**
+     * Creates a new {@link ReactiveSqsClient} instance.
+     *
+     * @param sqs AWS SQS client
+     */
+    public ReactiveSqsClient(SqsAsyncClient sqs) {
+        this.sqs = sqs;
     }
 
     /**
@@ -170,11 +173,16 @@ public class ReactiveSqsClient {
         return Mono.fromFuture(sqs.purgeQueue(PurgeQueueRequest.builder().applyMutation(purgeQueueRequest).build()));
     }
 
-    public Flux<ReceiveMessageResponse> receiveMessage(ReceiveMessageRequest receiveMessageRequest) {
-        return null;
+    public Flux<Message> receiveMessage(ReceiveMessageRequest receiveMessageRequest) {
+//        return Mono.fromFuture(sqs.receiveMessage(receiveMessageRequest))
+//                .flatMapMany((Function<ReceiveMessageResponse, Publisher<Message>>) receiveMessageResponse -> Flux.fromIterable(receiveMessageResponse.messages()));
+
+        return Flux.generate(sink -> {
+
+        });
     }
 
-    public Flux<ReceiveMessageResponse> receiveMessage(Consumer<ReceiveMessageRequest.Builder> receiveMessageRequest) {
+    public Flux<Message> receiveMessage(Consumer<ReceiveMessageRequest.Builder> receiveMessageRequest) {
         return null;
     }
 
