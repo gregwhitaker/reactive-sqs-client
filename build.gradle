@@ -5,6 +5,8 @@ plugins {
     id "com.avast.gradle.docker-compose"    version "0.10.9"
 }
 
+group = 'com.github.gregwhitaker'
+version = '2.0.0'
 sourceCompatibility = 1.8
 
 repositories {
